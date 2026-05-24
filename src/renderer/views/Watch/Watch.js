@@ -36,6 +36,11 @@ import {
   mapInvidiousLegacyFormat,
   youtubeImageUrlToInvidious
 } from '../../helpers/api/invidious'
+import {
+  getBilibiliVideoInfo,
+  generateBilibiliDashManifest,
+  getBilibiliRelated,
+} from '../../helpers/api/bilibili'
 import { sortCaptions } from '../../helpers/player/utils'
 import { MANIFEST_TYPE_SABR } from '../../helpers/player/SabrManifestParser'
 
@@ -368,6 +373,9 @@ export default defineComponent({
         case 'invidious':
           this.getVideoInformationInvidious()
           break
+        case 'bilibili':
+          this.getVideoInformationBilibili()
+          break
       }
     },
     onMountedDependOnLocalStateLoading() {
@@ -385,6 +393,8 @@ export default defineComponent({
 
       if (!process.env.SUPPORTS_LOCAL_API || this.backendPreference === 'invidious') {
         this.getVideoInformationInvidious()
+      } else if (this.backendPreference === 'bilibili') {
+        this.getVideoInformationBilibili()
       } else {
         this.getVideoInformationLocal()
       }
@@ -1052,6 +1062,88 @@ export default defineComponent({
           })
           console.error(err)
           if (process.env.SUPPORTS_LOCAL_API && this.backendPreference === 'invidious' && this.backendFallback) {
+            showToast(this.$t('Falling back to Local API'))
+            this.getVideoInformationLocal()
+          } else {
+            this.isLoading = false
+          }
+        })
+    },
+
+    getVideoInformationBilibili: function () {
+      if (this.firstLoad) {
+        this.isLoading = true
+      }
+
+      getBilibiliVideoInfo(this.videoId)
+        .then(videoInfo => {
+          this.videoTitle = videoInfo.title
+          this.videoViewCount = videoInfo.stat?.view ?? 0
+          this.videoLikeCount = videoInfo.stat?.like ?? 0
+          this.channelId = String(videoInfo.owner?.mid ?? '')
+          this.channelName = videoInfo.owner?.name ?? ''
+          this.channelThumbnail = videoInfo.owner?.face ?? ''
+          this.videoPublished = (videoInfo.pubdate || 0) * 1000
+          this.videoLengthSeconds = videoInfo.duration || 0
+          this.videoDescription = videoInfo.description || ''
+
+          this.videoGenreIsMusic = false
+          this.isLive = false
+          this.isFamilyFriendly = false
+          this.isUnlisted = false
+          this.isPostLiveDvr = false
+          this.isUpcoming = false
+          this.vrProjection = null
+
+          this.thumbnail = videoInfo.pic || ''
+
+          this.videoChapters = []
+          this.legacyFormats = []
+
+          this.updateSubscriptionDetails({
+            channelThumbnailUrl: videoInfo.owner?.face ?? '',
+            channelName: videoInfo.owner?.name ?? '',
+            channelId: String(videoInfo.owner?.mid ?? ''),
+          })
+
+          // Captions (Bilibili subtitles use BCC format requiring data URI encoding)
+          this.captions = []
+
+          // Related videos
+          getBilibiliRelated(videoInfo.bvid)
+            .then(related => {
+              this.recommendedVideos = (related || []).map(v => ({
+                videoId: v.bvid,
+                title: v.title,
+                author: v.author,
+                authorId: String(v.mid),
+                lengthSeconds: v.duration,
+                viewCount: v.stat?.view ?? 0,
+                published: v.pubdate * 1000,
+                liveNow: false,
+                isUpcoming: false,
+                type: 'video',
+              }))
+            })
+            .catch(() => {})
+
+          // DASH manifest
+          this.manifestSrc = generateBilibiliDashManifest(videoInfo)
+          this.manifestMimeType = MANIFEST_TYPE_DASH
+
+          if (this.activeFormat === 'legacy') {
+            this.activeFormat = 'dash'
+          }
+
+          this.updateTitle()
+          this.isLoading = false
+        })
+        .catch(err => {
+          console.error(err)
+          showToast(`Bilibili API Error: ${err}`, 10000, () => {
+            copyToClipboard(err)
+          })
+          if (process.env.SUPPORTS_LOCAL_API && this.backendFallback) {
             showToast(this.$t('Falling back to Local API'))
             this.getVideoInformationLocal()
           } else {

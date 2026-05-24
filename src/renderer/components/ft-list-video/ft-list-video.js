@@ -375,6 +375,11 @@ export default defineComponent({
         return this.deArrowCache.thumbnail
       }
 
+      // Bilibili: use the thumbnail URL from API response
+      if (this.backendPreference === 'bilibili' && Array.isArray(this.data?.videoThumbnails)) {
+        return this.data.videoThumbnails[0]?.url || thumbnailPlaceholder
+      }
+
       let baseUrl
       if (this.backendPreference === 'invidious') {
         baseUrl = this.currentInvidiousInstanceUrl

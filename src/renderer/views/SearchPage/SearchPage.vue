@@ -60,6 +60,7 @@ import {
   getLocalSearchResults
 } from '../../helpers/api/local'
 import { getInvidiousSearchResults } from '../../helpers/api/invidious'
+import { searchBilibili } from '../../helpers/api/bilibili'
 import { SEARCH_CHAR_LIMIT } from '../../../constants'
 
 const { t } = useI18n()
@@ -79,7 +80,7 @@ const processedQuery = computed(() => query.value.trim())
 /** @type {import('vue').ComputedRef<any[]>} */
 const sessionSearchHistory = computed(() => store.getters.getSessionSearchHistory)
 
-/** @type {import('vue').ComputedRef<'local' | 'invidious'>} */
+/** @type {import('vue').ComputedRef<'local' | 'invidious' | 'bilibili'>} */
 const backendPreference = computed(() => store.getters.getBackendPreference)
 
 /** @type {import('vue').ComputedRef<boolean>} */
@@ -179,6 +180,9 @@ function checkSearchCache(payload) {
         break
       case 'invidious':
         performSearchInvidious(payload, { resetSearchPage: true })
+        break
+      case 'bilibili':
+        performSearchBilibili(payload, { resetSearchPage: true })
         break
     }
   }
@@ -330,6 +334,71 @@ async function performSearchInvidious(payload, options = { resetSearchPage: fals
   }
 }
 
+async function performSearchBilibili(payload, options = { resetSearchPage: false }) {
+  if (options.resetSearchPage) {
+    searchPage.value = 1
+  }
+
+  if (searchPage.value === 1) {
+    isLoading.value = true
+  }
+
+  try {
+    const data = await searchBilibili(payload.query, searchPage.value)
+
+    const results = (data.results || []).map((item) => ({
+      type: 'video',
+      videoId: item.videoId,
+      title: item.title,
+      author: item.author,
+      authorId: item.authorId,
+      description: item.description,
+      viewCount: item.viewCount,
+      published: item.publishedText * 1000,
+      lengthSeconds: item.lengthSeconds,
+      liveNow: false,
+      isUpcoming: false,
+      videoThumbnails: item.videoThumbnails,
+    }))
+
+    apiUsed.value = 'bilibili'
+
+    if (searchPage.value !== 1) {
+      shownResults.value = shownResults.value.concat(results)
+    } else {
+      shownResults.value = results
+    }
+
+    isLoading.value = false
+
+    searchPage.value++
+
+    const historyPayload = {
+      query: payload.query,
+      data: shownResults.value,
+      searchSettings: searchSettings.value,
+      searchPage: searchPage.value,
+      apiUsed: apiUsed.value,
+    }
+
+    store.commit('addToSessionSearchHistory', historyPayload)
+  } catch (err) {
+    console.error(err)
+
+    const errorMessage = 'Bilibili API Error (Click to copy)'
+    showToast(`${errorMessage}: ${err}`, 10000, () => {
+      copyToClipboard(err)
+    })
+
+    if (process.env.SUPPORTS_LOCAL_API && backendFallback.value) {
+      showToast('Falling back to Local API')
+      performSearchLocal(payload)
+    } else {
+      isLoading.value = false
+    }
+  }
+}
+
 function nextPage() {
   const payload = {
     query: processedQuery.value,
@@ -346,6 +415,9 @@ function nextPage() {
     } else {
       showToast(t('Search Filters.There are no more results for this search'))
     }
+  } else if (apiUsed.value === 'bilibili') {
+    showToast(t('Search Filters["Fetching results. Please wait"]'))
+    performSearchBilibili(payload)
   } else {
     showToast(t('Search Filters["Fetching results. Please wait"]'))
     performSearchInvidious(payload)

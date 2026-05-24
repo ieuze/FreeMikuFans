@@ -253,18 +253,20 @@ function updateOpenDeepLinksInNewWindow(value) {
 }
 
 const BACKEND_VALUES = process.env.SUPPORTS_LOCAL_API
-  ? ['invidious', 'local']
-  : ['invidious']
+  ? ['invidious', 'local', 'bilibili']
+  : ['invidious', 'bilibili']
 
 const backendNames = computed(() => {
   if (process.env.SUPPORTS_LOCAL_API) {
     return [
       t('Settings.General Settings.Preferred API Backend.Invidious API'),
-      t('Settings.General Settings.Preferred API Backend.Local API')
+      t('Settings.General Settings.Preferred API Backend.Local API'),
+      'Bilibili API',
     ]
   } else {
     return [
-      t('Settings.General Settings.Preferred API Backend.Invidious API')
+      t('Settings.General Settings.Preferred API Backend.Invidious API'),
+      'Bilibili API',
     ]
   }
 })
@@ -273,7 +275,7 @@ const backendNames = computed(() => {
 const backendPreference = computed(() => store.getters.getBackendPreference)
 
 /**
- * @param {'local' | 'invidious'} value
+ * @param {'local' | 'invidious' | 'bilibili'} value
  */
 function updateBackendPreference(value) {
   store.dispatch('updateBackendPreference', value)
