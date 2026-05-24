@@ -2,182 +2,107 @@
  <img alt="" src="/_icons/logoColor.svg" width=500 align="center">
 </p>
 
-FreeTube is an open source desktop YouTube player built with privacy in mind.
-Use YouTube without advertisements and prevent Google from tracking you with their cookies and JavaScript.
-Available for Windows (10 and later), Mac (macOS 12 and later) & Linux thanks to Electron.
+# FreeMikuFans — Bilibili × YouTube 聚合客户端
 
-<p align="center"><a href="https://github.com/FreeTubeApp/FreeTube/releases">Download FreeTube</a></p>
+FreeMikuFans 是基于 [FreeTube](https://github.com/FreeTubeApp/FreeTube) v0.24.0 的衍生分支，在保持原版 YouTube 隐私友好客户端全部功能的基础上，**新增 Bilibili 视频源支持**。使用 Electron + Vue 3 + Shaka Player 构建。
+
 <p align="center">
-  <a href="https://github.com/FreeTubeApp/FreeTube/actions/workflows/build.yml">
-    <img alt='Build status' src="https://github.com/FreeTubeApp/FreeTube/actions/workflows/build.yml/badge.svg?branch=development" />
-  </a>
-  <a href="https://hosted.weblate.org/engage/free-tube/">
-    <img src="https://hosted.weblate.org/widgets/free-tube/-/svg-badge.svg" alt="Translation status" />
+  <a href="https://www.gnu.org/licenses/agpl-3.0.html">
+    <img alt="License: AGPLv3" src="https://img.shields.io/badge/License-AGPL%20v3-blue.svg" />
   </a>
 </p>
 
-<hr>
-<p align="center"><a href="#screenshots">Screenshots</a> &bull; <a href="#how-does-it-work">How does it work?</a> &bull; <a href="#features">Features</a> &bull; <a href="#download-links">Download Links</a> &bull; <a href="#contributing">Contributing</a> &bull; <a href="#localization">Localization</a> &bull; <a href="#contact">Contact</a> &bull; <a href="#donate">Donate</a> &bull; <a href="#license">License</a></p>
-<p align="center"><a href="https://freetubeapp.io/">Website</a> &bull; <a href="https://docs.freetubeapp.io/">Documentation</a> &bull; <a href="https://docs.freetubeapp.io/faq/">FAQ</a> &bull; <a href="https://github.com/FreeTubeApp/FreeTube/discussions">Discussions</a></p>
-<hr>
+---
 
-> [!NOTE] 
-> FreeTube is currently in Beta. While it should work well for most users, there are still bugs and missing features that need to be addressed.
->
-> If you have an idea or if you found a bug, please submit a [GitHub issue](https://github.com/FreeTubeApp/FreeTube/issues/new/choose) so that we can track it.  Please [search the existing issues](https://github.com/FreeTubeApp/FreeTube/issues?q=is%3Aissue+sort%3Arelevance-desc) before submitting to prevent duplicates!
+## 特性
 
-## Screenshots
-| The main FreeTube window                                                                         |
-|--------------------------------------------------------------------------------------------------|
-| ![](https://raw.githubusercontent.com/FreeTubeApp/FreeTubeApp.io/master/src/images/FreeTube1.png)|
+- **双视频源**：原生 YouTube（内置提取器 / Invidious API）+ Bilibili（WIP）
+- **无广告观看**：YouTube 无广告；Bilibili 使用官方接口
+- **隐私优先**：无 Cookie 追踪，订阅/历史/播放列表本地存储
+- **Shaka Player**：支持 DASH / HLS / SABR 流媒体格式
+- **DASH Manifest**：Bilibili fMP4 视频流实时生成标准 DASH XML
+- **SponsorBlock / DeArrow**：保留原版功能
 
-| Watching a video                                                                                 |
-|--------------------------------------------------------------------------------------------------|
-| ![](https://raw.githubusercontent.com/FreeTubeApp/FreeTubeApp.io/master/src/images/FreeTube2.png)|
+## Bilibili 集成状态
 
-| Settings                                                                                         |
-|--------------------------------------------------------------------------------------------------|
-| ![](https://raw.githubusercontent.com/FreeTubeApp/FreeTubeApp.io/master/src/images/FreeTube3.png)|
+| 功能 | 状态 |
+|------|------|
+| BV/AV ID 互转 | ✅ 完整 |
+| WBI 签名 + 设备指纹 | ✅ 完整 |
+| 视频信息 + DASH 流 | ✅ 完整 |
+| 搜索（全站） | ✅ 完整 |
+| 关联视频推荐 | ✅ 完整 |
+| 评论（支持排序/分页） | ✅ 完整 |
+| 频道/UP主主页（视频列表+关于） | ✅ 完整 |
+| DASH Manifest 生成 | ✅ Phase 2 |
+| 弹幕 | ❌ 未实现 |
+| 字幕（BCC→SRT） | ❌ 未实现 |
+| 直播 | ❌ 未实现 |
+| 收藏夹/合集 | ❌ 未实现 |
 
-## How does it work?
-FreeTube uses a built in extractor to grab and serve data / videos. The [Invidious API](https://github.com/iv-org/invidious) can also optionally be used. FreeTube does not use any official APIs to obtain data. While YouTube can still see your video requests, it can no
-longer track you using cookies or JavaScript. Your subscriptions, playlists and history are stored locally on your computer and never sent out.
+## 快速开始
 
-> [!IMPORTANT]  
-> Using a VPN or Tor is highly recommended to hide your IP while using FreeTube.
+```bash
+# 安装依赖
+pnpm install
 
-## Features
-* Watch videos without ads
-* Use YouTube without Google tracking you using cookies and JavaScript
-* Two extractor APIs to choose from (Built in or Invidious)
-* Subscribe to channels without an account
-* Connect to an externally setup proxy such as Tor
-* View and search your local subscriptions, playlists and history
-* Organize your subscriptions into "Profiles" to create a more focused feed
-* Export & import subscriptions
-* YouTube Trending
-* YouTube Chapters
-* Most popular videos page based on the set Invidious instance
-* SponsorBlock
-* DeArrow
-* Open videos from your browser directly into FreeTube (with extension)
-* Watch videos using an external player
-* Full Theme support
-* Make a screenshot of a video
-* Multiple windows
-* Mini Player (Picture-in-Picture)
-* Keyboard shortcuts
-* Option to show only family friendly content
-* Show/hide functionality or elements within the app using the distraction free settings
-* View channel posts
+# 开发模式（Webpack Dev Server :9080 + Electron HMR）
+pnpm run dev
 
-### Browser Extensions
-The following extensions open YouTube links directly in FreeTube:
+# 生产构建
+pnpm run build:arm64    # Apple Silicon
+pnpm run build          # 本地架构
+```
 
-- [LibRedirect](https://libredirect.github.io/)
-- [RedirectTube](https://github.com/MStankiewiczOfficial/RedirectTube)
+构建产物输出到 `./build/`，macOS 格式为 `.dmg` / `.zip` / `.7z`。
 
-LibRedirect automatically redirect YouTube links to FreeTube.
-> [!IMPORTANT]
-> To ensure proper functionality, select FreeTube as Frontend in the Services settings of the extension.
+## 架构概览
 
-RedirectTube, doesn’t automatically open YouTube links in FreeTube (although this feature can be enabled in the settings). Instead, it adds buttons to the toolbar and context menu, which you can click to open videos in FreeTube manually.
+```
+src/
+  main/index.js           Electron 主进程：窗口管理、Origin 请求头改写（Bilibili 412 修复）
+  renderer/helpers/api/
+    local.js              YouTube 内置提取器（youtubei.js/Innertube）
+    invidious.js          Invidious API 集成
+    bilibili.js           新增：Bilibili 提取器（BV/AV、WBI 签名、DASH 解析、搜索、评论、频道）
+  renderer/views/
+    Watch/Watch.js        核心视图：后端选择、Bilibili 视频信息提取、DASH manifest 生成
+    SearchPage/           搜索：支持 Bilibili 搜索结果
+    Channel/              频道：支持 Bilibili UP 主主页
+  renderer/components/
+    CommentSection/       评论：支持 Bilibili 评论（排序 + 分页 + 回复）
+    ft-shaka-video-player/ Shaka Player 封装
+```
 
-- Download LibRedirect from [Mozilla Add-ons](https://addons.mozilla.org/firefox/addon/libredirect/) (for Firefox based-browsers) or [developer's website](https://libredirect.github.io/download_chromium.html) (for Chrome and Chromium-based browsers).
+### 后端切换
 
-- Download RedirectTube from [Mozilla Add-ons](https://addons.mozilla.org/firefox/addon/redirecttube/) (for Firefox based-browsers) or [Chrome Web Store](https://chromewebstore.google.com/detail/redirecttube/jpbaggklodpddjcadlebabhiopjkjfjh) (for Chrome and Chromium-based browsers).
+设置 → 后端偏好（`settings.backendPreference`）：
+- `local` — YouTube 内置 API
+- `invidious` — Invidious 实例
+- `bilibili` — Bilibili API
 
-> [!NOTE]
-> These extensions do not work on Linux portable builds!
->
-> If you have issues with the extension working with FreeTube, please create an issue in this repository instead of the extension repository.
+## 技术要点
 
-## Download Links
-### Official Downloads
+### Bilibili 反爬处理
 
-> [!CAUTION]
-> FreeTube is only supported on Windows 10 and later, macOS 12 and above, and various Linux distributions. Installing it on unsupported systems may result in unexpected issues.
+| 措施 | 实现 |
+|------|------|
+| WBI 签名 | 动态 key + MD5 参数签名 |
+| 浏览器指纹 | DeviceForger：随机 Chrome UA、GPU、WebGL |
+| Cookie 轮换 | buvid3/4、_uuid、b_lsid 随机生成 |
+| dm_img 参数 | WebGL + 屏幕指纹 Base64 |
+| Origin 修复 | Electron `onBeforeSendHeaders` 改写 Origin 为 `https://www.bilibili.com` |
+| 412 重试 | 自动刷新 Cookie + 设备指纹后重试 |
 
-* [GitHub Releases](https://github.com/FreeTubeApp/FreeTube/releases)
+### DASH 流
 
-* [FreeTube Website](https://freetubeapp.io/#download)
-
-* Flatpak on Flathub: [Download](https://flathub.org/apps/details/io.freetubeapp.FreeTube) and [Source Code](https://github.com/flathub/io.freetubeapp.FreeTube)
-
-#### Automated Builds (Nightly / Weekly)
-> [!WARNING]
-> Use these builds at your own risk. These are pre-release versions and are only intended for people that want to test changes early and are willing to accept that things could break from one build to another. 
-
-Builds are automatically created from changes to our development branch via [GitHub Actions](https://github.com/FreeTubeApp/FreeTube/actions?query=workflow%3ABuild).
-
-The first build with a green check mark is the latest build.  
-
-> [!IMPORTANT]
-> You will need to have a GitHub account to download these builds.
-
-### Unofficial Downloads
-> [!WARNING]
-> These builds are maintained by the community. While they should be safe, download at your own risk. There may be issues with using these versus the official builds. Any issues specific with these builds should be sent to their respective maintainer. Make sure you always try an [official download](https://github.com/freetubeapp/freetube/#official-downloads) before reporting your issue to us!
-
-* Arch User Repository (AUR): [Download](https://aur.archlinux.org/packages/freetube-bin/)
-
-* Chocolatey: [Download](https://chocolatey.org/packages/freetube/)
-
-* FreeTubeAndroid (FreeTube port for Android and PWA): [Download](https://github.com/MarmadileManteater/FreeTubeAndroid/releases) and [Source Code](https://github.com/MarmadileManteater/FreeTubeAndroid)
-
-* Homebrew Formulae (Mac only): [Download for Apple Silicon](https://github.com/PikachuEXE/homebrew-FreeTube)
-
-* Nix Packages: [Download](https://search.nixos.org/packages?query=freetube)
-
-* PortableApps (Windows Only): [Download](https://github.com/rddim/FreeTubePortable/releases) and [Source Code](https://github.com/rddim/FreeTubePortable)
-
-* Scoop (Windows Only): [Usage](https://github.com/ScoopInstaller/Scoop)
-
-* Snap: [Download](https://snapcraft.io/freetube) and [Source Code](https://git.launchpad.net/freetube)
-
-* WAPT: [Download](https://wapt.tranquil.it/store/en/tis-freetube)
-
-* Windows Package Manager (winget): [Usage](https://docs.microsoft.com/en-us/windows/package-manager/winget/)
-
-## Contributing
-Thank you very much to the [People and Projects](https://docs.freetubeapp.io/credits/) that make FreeTube possible!
-
-If you like to get your hands dirty and want to contribute, we would love to
-have your help.  Send a pull request and someone will review your code. 
-
-> [!IMPORTANT]
-> Please follow the [Contribution Guidelines](https://github.com/FreeTubeApp/FreeTube/blob/development/CONTRIBUTING.md) before sending your pull request.
-
-## Localization
-<a href="https://hosted.weblate.org/engage/free-tube/">
-<img src="https://hosted.weblate.org/widgets/free-tube/-/287x66-grey.png" alt="Translation status" />
-</a>
-
-We are actively looking for translations!  We use [Weblate](https://hosted.weblate.org/engage/free-tube/) to make it easy for translators to get involved.  Click on the badge above to learn how to get involved.
-
-For the Linux Flatpak, the desktop entry comment string can be translated at our [Flatpak repository](https://github.com/flathub/io.freetubeapp.FreeTube/blob/master/io.freetubeapp.FreeTube.desktop).
-
-## Contact
-If you ever have any questions, feel free to ask it on our [Discussions](https://github.com/FreeTubeApp/FreeTube/discussions) page.  Alternatively, you can email us at FreeTubeApp@protonmail.com or you can join our [Matrix Room](https://matrix.to/#/#freetube:matrix.org).  
-
-> [!IMPORTANT]
-> Don't forget to check out the [rules](https://docs.freetubeapp.io/community/matrix/) before joining.
-
-## Donate
-If you enjoy using FreeTube, you're welcome to leave a donation using the following method.  
-
-* Bitcoin Address: `1Lih7Ho5gnxb1CwPD4o59ss78pwo2T91eS`
-
-While your donations are much appreciated, only donate if you really want to.  Donations are used for keeping the website up and running and eventual code signing costs. 
-
-> [!TIP]
-> If you are using the Invidious API then we recommend that you donate to the instance that you use. You can also donate to the [Invidious team](https://invidious.io/donate/) or the [Local API developer](https://github.com/sponsors/LuanRT).
+Bilibili 返回的 JSON DASH 格式包含 `video[]` 和 `audio[]` 数组（fMP4 格式，含 `SegmentBase` 的 `init` + `indexRange`），实时生成标准 DASH XML 后由 Shaka Player 原生播放。
 
 ## License
-[![GNU AGPLv3 Image](https://www.gnu.org/graphics/agplv3-155x51.png)](https://www.gnu.org/licenses/agpl-3.0.html)  
 
-FreeTube is Free Software: You can use, study share and improve it at your
-will. Specifically you can redistribute and/or modify it under the terms of the
-[GNU Affero General Public License](https://www.gnu.org/licenses/agpl-3.0.html) as
-published by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.  
+[![GNU AGPLv3](https://www.gnu.org/graphics/agplv3-155x51.png)](https://www.gnu.org/licenses/agpl-3.0.html)
+
+FreeMikuFans 基于 [FreeTube](https://github.com/FreeTubeApp/FreeTube)（AGPL-3.0）修改而来。  
+由于 Bilibili 集成深度修改了 FreeTube 核心源码（包括主进程网络层、渲染进程视图/组件/API 层），**无法以独立链接库形式分发**，因此整个项目必须遵循 **GNU Affero General Public License v3.0** 开源。
+
+> 简而言之：你可以自由使用、学习、分享和改进本软件，但任何公开部署或分发都必须提供完整的源代码。
