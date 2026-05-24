@@ -478,7 +478,7 @@ export async function getBilibiliVideoInfo(bvid, page = 1) {
     owner: videoData.owner || {},
     stat: videoData.stat || {},
     pages,
-    pic: videoData.pic || '',
+    pic: fixUrl(videoData.pic),
     pubdate: videoData.pubdate || 0,
     tname: videoData.tname || '',
     tid: videoData.tid || 0,
@@ -624,6 +624,11 @@ function escapeXml(str) {
   return String(str).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll('\'', '&apos;')
 }
 
+function fixUrl(url) {
+  if (!url) return ''
+  return url.startsWith('//') ? `https:${url}` : url
+}
+
 // ---- Search ----
 
 export async function searchBilibili(query, page = 1, searchType = 'video') {
@@ -645,7 +650,7 @@ export async function searchBilibili(query, page = 1, searchType = 'video') {
       videoId: bvid || `av${avid}`,
       author: typeof author === 'string' ? author : String(author),
       authorId: String(item.mid || ''),
-      videoThumbnails: [{ url: item.pic || '', width: 196, height: 110 }],
+      videoThumbnails: [{ url: fixUrl(item.pic), width: 196, height: 110 }],
       viewCount: item.play || 0,
       lengthSeconds: item.duration || 0,
       publishedText: item.pubdate || '',
@@ -680,7 +685,7 @@ export async function getBilibiliChannelInfo(mid) {
     videos: (data.list?.vlist || []).map((v) => ({
       bvid: v.bvid || '',
       title: v.title || '',
-      pic: v.pic || '',
+      pic: fixUrl(v.pic),
       duration: v.length || 0,
       play: v.play || 0,
       videoReview: v.video_review || 0,

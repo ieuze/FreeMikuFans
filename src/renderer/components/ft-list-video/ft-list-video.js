@@ -377,7 +377,9 @@ export default defineComponent({
 
       // Bilibili: use the thumbnail URL from API response
       if (this.backendPreference === 'bilibili' && Array.isArray(this.data?.videoThumbnails)) {
-        return this.data.videoThumbnails[0]?.url || thumbnailPlaceholder
+        const url = this.data.videoThumbnails[0]?.url
+        if (!url) return thumbnailPlaceholder
+        return url.startsWith('//') ? `https:${url}` : url
       }
 
       let baseUrl

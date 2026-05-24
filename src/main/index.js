@@ -606,7 +606,13 @@ function runApp() {
 
         // YouTube doesn't send the Content-Type header for the media requests, so we shouldn't either
         delete requestHeaders['Content-Type']
-      } else if (urlObj.origin === 'https://api.bilibili.com' || urlObj.origin.endsWith('.hdslb.com')) {
+      } else if (
+        urlObj.origin === 'https://api.bilibili.com' ||
+        urlObj.origin.endsWith('.hdslb.com') ||
+        urlObj.origin.endsWith('.bilivideo.com') ||
+        urlObj.origin.endsWith('.biliplus.com') ||
+        (urlObj.origin.endsWith('.akamaized.net') && (url.includes('/upos-') || url.includes('/upgcxcode/')))
+      ) {
         requestHeaders.Referer = 'https://www.bilibili.com/'
         requestHeaders.Origin = 'https://www.bilibili.com'
       } else if (urlObj.origin === 'https://ipwho.is') {
