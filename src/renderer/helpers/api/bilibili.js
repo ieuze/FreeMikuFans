@@ -4,7 +4,7 @@ const BILI_WWW = 'https://www.bilibili.com'
 const VIDEO_INFO_URL = `${BILI_API}/x/web-interface/view`
 const PLAYURL_WBI_URL = `${BILI_API}/x/player/wbi/playurl`
 const WBI_NAV_URL = `${BILI_API}/x/web-interface/nav`
-const SEARCH_URL = `${BILI_API}/x/web-interface/search/type`
+const SEARCH_URL = `${BILI_API}/x/web-interface/search/all/v2`
 const CHANNEL_URL = `${BILI_API}/x/space/wbi/arc/search`
 const SUBTITLE_META_URL = `${BILI_API}/x/player/wbi/v2`
 const COMMENT_URL = `${BILI_API}/x/v2/reply/wbi/main`
@@ -632,15 +632,17 @@ function fixUrl(url) {
 // ---- Search ----
 
 export async function searchBilibili(query, page = 1, searchType = 'video') {
-  const params = new URLSearchParams({
-    search_type: searchType,
+  const params = {
     keyword: query,
     page: String(page),
-  })
-  const data = await biliApiGet(`${SEARCH_URL}?${params.toString()}`)
+  }
+  const url = await encWbi(SEARCH_URL, params)
+  const data = await biliApiGet(url)
 
-  const results = (data.result || []).filter((item) => item.type === 'video').map((item) => {
-    const author = item.author || item.mid || ''
+  const videoSection = (data.result || []).find((s) => s.result_type === 'video')
+  const items = videoSection?.data || []
+
+  const results = items.map((item) => {
     const bvid = item.bvid || ''
     const avid = item.aid || 0
 
@@ -648,12 +650,12 @@ export async function searchBilibili(query, page = 1, searchType = 'video') {
       type: 'video',
       title: item.title?.replaceAll(/<[^>]*>/g, '') || '',
       videoId: bvid || `av${avid}`,
-      author: typeof author === 'string' ? author : String(author),
+      author: item.author || '',
       authorId: String(item.mid || ''),
       videoThumbnails: [{ url: fixUrl(item.pic), width: 196, height: 110 }],
       viewCount: item.play || 0,
       lengthSeconds: item.duration || 0,
-      publishedText: item.pubdate || '',
+      publishedText: item.pubdate || 0,
       description: item.description || '',
     }
   })
