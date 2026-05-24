@@ -333,7 +333,7 @@ import FtTimestampCatcher from '../FtTimestampCatcher.vue'
 
 import store from '../../store/index'
 
-import { copyToClipboard, showToast } from '../../helpers/utils'
+import { copyToClipboard, showToast, getRelativeTimeFromDate } from '../../helpers/utils'
 import { getLocalCommunityPostComments, getLocalComments, parseLocalComment } from '../../helpers/api/local'
 import {
   getInvidiousCommunityPostCommentReplies,
@@ -341,6 +341,7 @@ import {
   invidiousGetCommentReplies,
   invidiousGetComments
 } from '../../helpers/api/invidious'
+import { getBilibiliComments } from '../../helpers/api/bilibili'
 
 const { t } = useI18n()
 
@@ -496,7 +497,9 @@ function isSubscribedToChannel(channelId) {
 function getCommentData() {
   isLoading.value = true
 
-  if (!process.env.SUPPORTS_LOCAL_API || backendPreference.value === 'invidious') {
+  if (backendPreference.value === 'bilibili') {
+    getCommentDataBilibili()
+  } else if (!process.env.SUPPORTS_LOCAL_API || backendPreference.value === 'invidious') {
     if (!props.isPostComments) {
       getCommentDataInvidious()
     } else {
@@ -511,7 +514,9 @@ function getMoreComments() {
   if (commentData.value.length === 0 || nextPageToken.value == null) {
     showToast(t('Comments.There are no more comments for this video'))
   } else {
-    if (!process.env.SUPPORTS_LOCAL_API || backendPreference.value === 'invidious') {
+    if (backendPreference.value === 'bilibili') {
+      getCommentDataBilibili()
+    } else if (!process.env.SUPPORTS_LOCAL_API || backendPreference.value === 'invidious') {
       if (!props.isPostComments) {
         getCommentDataInvidious()
       } else {
@@ -558,7 +563,9 @@ function toggleCommentReplies(index) {
  * @param {number} index
  */
 function getCommentReplies(index) {
-  if (!process.env.SUPPORTS_LOCAL_API || commentData.value[index].dataType === 'invidious') {
+  if (commentData.value[index].dataType === 'bilibili') {
+    getCommentRepliesBilibili(index)
+  } else if (!process.env.SUPPORTS_LOCAL_API || commentData.value[index].dataType === 'invidious') {
     if (!props.isPostComments) {
       getCommentRepliesInvidious(index)
     } else {
@@ -855,6 +862,55 @@ async function getPostCommentRepliesInvidious(index) {
     })
     isLoading.value = false
   }
+}
+
+function parseBilibiliComment(r) {
+  return {
+    id: String(r.id || ''),
+    dataType: 'bilibili',
+    authorLink: String(r.authorId || ''),
+    author: r.author || '',
+    authorId: String(r.authorId || ''),
+    authorThumb: r.avatar || '',
+    text: r.content || '',
+    isHearted: !!r.isHearted,
+    isPinned: false,
+    isOwner: false,
+    hasReplyToken: !!(r.replies && r.replies.length < (r.replyCount || 0)),
+    showReplies: false,
+    replies: (r.replies || []).map(rr => parseBilibiliComment(rr)),
+    time: getRelativeTimeFromDate((r.ctime || 0) * 1000, false),
+    likes: r.likes || 0,
+    numReplies: r.replyCount || 0,
+  }
+}
+
+async function getCommentDataBilibili() {
+  try {
+    const page = typeof nextPageToken.value === 'number' ? nextPageToken.value : 1
+    const sort = sortNewest.value ? 2 : 1
+    const result = await getBilibiliComments(props.id, page, sort)
+
+    const comments = result.comments.map(r => parseBilibiliComment(r))
+
+    commentData.value = commentData.value.concat(comments)
+    nextPageToken.value = result.total > commentData.value.length ? result.nextPage : null
+    isLoading.value = false
+    showComments.value = true
+  } catch (err) {
+    console.error(err)
+    const errorMessage = t('Local API Error (Click to copy)')
+    showToast(`${errorMessage}: ${err}`, 10000, () => {
+      copyToClipboard(err)
+    })
+    isLoading.value = false
+  }
+}
+
+async function getCommentRepliesBilibili(index) {
+  const comment = commentData.value[index]
+  // Bilibili API already includes replies in the initial response
+  comment.showReplies = true
 }
 </script>
 

@@ -7,7 +7,7 @@ const WBI_NAV_URL = `${BILI_API}/x/web-interface/nav`
 const SEARCH_URL = `${BILI_API}/x/web-interface/search/all/v2`
 const CHANNEL_URL = `${BILI_API}/x/space/wbi/arc/search`
 const SUBTITLE_META_URL = `${BILI_API}/x/player/wbi/v2`
-const COMMENT_URL = `${BILI_API}/x/v2/reply/wbi/main`
+const COMMENT_URL = `${BILI_API}/x/v2/reply/main`
 const RELATED_URL = `${BILI_API}/x/web-interface/archive/related`
 
 // Quality mapping: id -> label
@@ -388,13 +388,22 @@ export function setAuthHeader(headers = {}) {
 }
 
 export async function biliFetch(url, options = {}) {
+  if (currentCookies) {
+    options.credentials = 'include'
+  }
   const headers = { ...getBaseHeaders(), ...options.headers }
+  if (currentCookies) {
+    headers.Cookie = currentCookies.cookieStr
+  }
   const response = await fetch(url, { ...options, headers })
 
   if (response.status === 412) {
     refreshCookie()
     deviceForger._generate()
     const retryHeaders = { ...getBaseHeaders(), ...options.headers }
+    if (currentCookies) {
+      retryHeaders.Cookie = currentCookies.cookieStr
+    }
     return fetch(url, { ...options, headers: retryHeaders })
   }
 
@@ -758,32 +767,48 @@ function formatSrtTime(ms) {
 // ---- Comments ----
 
 export async function getBilibiliComments(oid, page = 1, sort = 1) {
+  // Accept BV ID and convert to AID
+  let aid = oid
+  if (typeof oid === 'string' && oid.startsWith('BV')) {
+    aid = bv2av(oid)
+    if (!aid) throw new Error(`Invalid BV id for comments: ${oid}`)
+  }
   const params = {
-    oid: String(oid),
+    oid: String(aid),
     type: '1',
     pn: String(page),
     ps: '20',
     sort: String(sort),
     web_location: '333.788',
   }
-  const url = await encWbi(COMMENT_URL, params)
-  const data = await biliApiGet(url)
+  const qs = new URLSearchParams(params).toString()
+  const data = await biliApiGet(`${COMMENT_URL}?${qs}`)
 
   const replies = data.replies || []
   return {
     comments: replies.map((r) => ({
-      id: String(r.rpid || r.id || ''),
+      id: String(r.rpid || ''),
       author: r.member?.uname || '',
       authorId: String(r.member?.mid || ''),
       avatar: r.member?.avatar || '',
       content: r.content?.message || '',
       likes: r.like || 0,
-      rpidStr: r.rpid_str || '',
       ctime: r.ctime || 0,
       replyCount: r.rcount || 0,
+      isHearted: !!(r.up_action?.like),
+      replies: (r.replies || []).map((rr) => ({
+        id: String(rr.rpid || ''),
+        author: rr.member?.uname || '',
+        authorId: String(rr.member?.mid || ''),
+        avatar: rr.member?.avatar || '',
+        content: rr.content?.message || '',
+        likes: rr.like || 0,
+        ctime: rr.ctime || 0,
+        replyCount: rr.rcount || 0,
+      })),
     })),
-    cursor: data.cursor || {},
-    total: data.page?.count || data.total || 0,
+    nextPage: page + 1,
+    total: data.cursor?.all_count || 0,
   }
 }
 

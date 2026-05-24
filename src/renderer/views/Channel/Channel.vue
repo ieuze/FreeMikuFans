@@ -322,6 +322,7 @@ import {
   parseLocalPlaylistVideo,
   parseChannelHomeTab
 } from '../../helpers/api/local'
+import { getBilibiliChannelInfo } from '../../helpers/api/bilibili'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -570,7 +571,11 @@ watch(route, () => {
   errorMessage.value = ''
 
   // Re-enable auto refresh on sort value change AFTER update done
-  if (!process.env.SUPPORTS_LOCAL_API || backendPreference.value === 'invidious') {
+  if (backendPreference.value === 'bilibili') {
+    getChannelInfoBilibili().finally(() => {
+      autoRefreshOnSortByChangeEnabled = true
+    })
+  } else if (!process.env.SUPPORTS_LOCAL_API || backendPreference.value === 'invidious') {
     getChannelInfoInvidious().finally(() => {
       autoRefreshOnSortByChangeEnabled = true
     })
@@ -598,7 +603,11 @@ onMounted(async () => {
   }
 
   // Enable auto refresh on sort value change AFTER initial update done
-  if (!process.env.SUPPORTS_LOCAL_API || backendPreference.value === 'invidious') {
+  if (backendPreference.value === 'bilibili') {
+    await getChannelInfoBilibili().finally(() => {
+      autoRefreshOnSortByChangeEnabled = true
+    })
+  } else if (!process.env.SUPPORTS_LOCAL_API || backendPreference.value === 'invidious') {
     await getChannelInfoInvidious().finally(() => {
       autoRefreshOnSortByChangeEnabled = true
     })
@@ -1032,6 +1041,116 @@ async function getChannelInfoInvidious() {
   }
 }
 
+async function getChannelInfoBilibili() {
+  apiUsed = 'bilibili'
+  isLoading.value = true
+  const expectedId = id.value
+
+  try {
+    const info = await getBilibiliChannelInfo(id.value)
+    if (expectedId !== id.value) return
+
+    channelName.value = info.name
+    store.commit('setAppTitle', info.name)
+    thumbnailUrl.value = info.avatar
+    subCount.value = null
+    description.value = autolinker.link(info.sign)
+    viewCount.value = null
+    videoCount.value = info.total
+    bannerUrl.value = null
+    relatedChannels.value = []
+    isFamilyFriendly.value = true
+    isArtistTopicChannel.value = false
+    errorMessage.value = ''
+
+    store.dispatch('updateSubscriptionDetails', {
+      channelThumbnailUrl: info.avatar,
+      channelName: info.name,
+      channelId: id.value,
+    })
+
+    channelTabs.value = ['videos', 'about']
+    currentTab.value = currentOrFirstTab(route.params.currentTab)
+    showSearchBar.value = false
+
+    if (info.videos.length > 0) {
+      channelBilibiliVideos()
+    }
+
+    isLoading.value = false
+  } catch (err) {
+    setErrorMessage(err)
+    console.error(err)
+    const errorMessage = t('Local API Error (Click to copy)')
+    showToast(`${errorMessage}: ${err}`, 10000, () => {
+      copyToClipboard(err)
+    })
+    isLoading.value = false
+  }
+}
+
+function parseBilibiliChannelVideo(v) {
+  return {
+    type: 'video',
+    title: v.title || '',
+    videoId: v.bvid || '',
+    author: channelName.value,
+    authorId: id.value,
+    authorUrl: '',
+    authorVerified: false,
+    videoThumbnails: [{ url: v.pic || '', width: 480, height: 360 }],
+    description: v.description || '',
+    viewCount: v.play || 0,
+    viewCountText: String(v.play || 0),
+    lengthSeconds: v.duration || 0,
+    published: (v.created || 0) * 1000,
+    publishedText: '',
+    liveNow: false,
+    isUpcoming: false,
+    premium: false,
+    hasCaptions: false,
+  }
+}
+
+function channelBilibiliVideos(sortByChanged = false) {
+  if (sortByChanged) {
+    videoContinuationData.value = null
+  }
+
+  let more = false
+  if (videoContinuationData.value) {
+    more = true
+  } else {
+    isElementListLoading.value = true
+  }
+
+  // Bilibili channel video listing doesn't support cursor-based pagination well
+  // We load all available videos on first load and don't support "more"
+  // For simplicity, we just use the initial batch
+  if (!more) {
+    getBilibiliChannelInfo(id.value).then(info => {
+      const videos = (info.videos || []).map(v => parseBilibiliChannelVideo(v))
+      latestVideos.value = videos
+      videoContinuationData.value = null
+      isElementListLoading.value = false
+
+      if (isSubscribedInAnyProfile.value && videoSortBy.value === 'newest') {
+        store.dispatch('updateSubscriptionVideosCacheByChannel', {
+          channelId: id.value,
+          videos: videos
+        })
+      }
+    }).catch(err => {
+      console.error(err)
+      const errorMessage = t('Local API Error (Click to copy)')
+      showToast(`${errorMessage}: ${err}`, 10000, () => {
+        copyToClipboard(err)
+      })
+      isElementListLoading.value = false
+    })
+  }
+}
+
 const latestVideos = shallowRef([])
 const videoContinuationData = shallowRef(null)
 const showVideoSortBy = ref(true)
@@ -1068,7 +1187,9 @@ watch(videoSortBy, () => {
   latestVideos.value = []
   videoContinuationData.value = null
 
-  if (process.env.SUPPORTS_LOCAL_API && apiUsed === 'local') {
+  if (apiUsed === 'bilibili') {
+    channelBilibiliVideos(true)
+  } else if (process.env.SUPPORTS_LOCAL_API && apiUsed === 'local') {
     getChannelVideosLocal()
   } else {
     channelInvidiousVideos(true)
@@ -2228,7 +2349,9 @@ const showFetchMoreButton = computed(() => {
 function handleFetchMore() {
   switch (currentTab.value) {
     case 'videos':
-      if (process.env.SUPPORTS_LOCAL_API && apiUsed === 'local') {
+      if (apiUsed === 'bilibili') {
+        channelBilibiliVideos()
+      } else if (process.env.SUPPORTS_LOCAL_API && apiUsed === 'local') {
         getChannelVideosLocalMore()
       } else {
         channelInvidiousVideos()
